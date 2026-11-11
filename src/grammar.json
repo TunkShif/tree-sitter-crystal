@@ -13612,8 +13612,168 @@
               {
                 "type": "SYMBOL",
                 "name": "_implicit_object_call"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "implicit_object_assign"
+                },
+                "named": true,
+                "value": "assign"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "implicit_object_operator_assign"
+                },
+                "named": true,
+                "value": "op_assign"
               }
             ]
+          }
+        ]
+      }
+    },
+    "implicit_object_assign": {
+      "type": "PREC_RIGHT",
+      "value": "assignment_operator",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "lhs",
+            "content": {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "implicit_object_call_chainable"
+              },
+              "named": true,
+              "value": "implicit_object_call"
+            }
+          },
+          {
+            "type": "STRING",
+            "value": "="
+          },
+          {
+            "type": "FIELD",
+            "name": "rhs",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_expression"
+            }
+          }
+        ]
+      }
+    },
+    "implicit_object_operator_assign": {
+      "type": "PREC_RIGHT",
+      "value": "assignment_operator",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "lhs",
+            "content": {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "implicit_object_call_chainable"
+              },
+              "named": true,
+              "value": "implicit_object_call"
+            }
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "+="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&+="
+                },
+                {
+                  "type": "STRING",
+                  "value": "-="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&-="
+                },
+                {
+                  "type": "STRING",
+                  "value": "*="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&*="
+                },
+                {
+                  "type": "STRING",
+                  "value": "/="
+                },
+                {
+                  "type": "STRING",
+                  "value": "//="
+                },
+                {
+                  "type": "STRING",
+                  "value": "%="
+                },
+                {
+                  "type": "STRING",
+                  "value": "|="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&="
+                },
+                {
+                  "type": "STRING",
+                  "value": "^="
+                },
+                {
+                  "type": "STRING",
+                  "value": "**="
+                },
+                {
+                  "type": "STRING",
+                  "value": "<<="
+                },
+                {
+                  "type": "STRING",
+                  "value": ">>="
+                },
+                {
+                  "type": "STRING",
+                  "value": "||="
+                },
+                {
+                  "type": "STRING",
+                  "value": "&&="
+                }
+              ]
+            },
+            "named": true,
+            "value": "operator"
+          },
+          {
+            "type": "FIELD",
+            "name": "rhs",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_expression"
+            }
           }
         ]
       }

@@ -5581,3 +5581,64 @@ loc pragmas
         (literal_content))))
   (loc_pragma_location)
   (loc_pragma_location))
+
+================================================================================
+implicit object assignment
+================================================================================
+inner.try &.color=(color)
+x.tap &.keyword = k
+x.each &.a.b = 2
+x.try &.count += 1
+x.tap(&.flush = true)
+--------------------------------------------------------------------------------
+
+(expressions
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (assign
+          lhs: (implicit_object_call
+            method: (identifier))
+          rhs: (expressions
+            (identifier))))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (assign
+          lhs: (implicit_object_call
+            method: (identifier))
+          rhs: (identifier)))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (assign
+          lhs: (implicit_object_call
+            receiver: (implicit_object_call
+              method: (identifier))
+            method: (identifier))
+          rhs: (integer)))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (op_assign
+          lhs: (implicit_object_call
+            method: (identifier))
+          (operator)
+          rhs: (integer)))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (assign
+          lhs: (implicit_object_call
+            method: (identifier))
+          rhs: (true))))))

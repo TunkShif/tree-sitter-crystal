@@ -1720,6 +1720,10 @@
             "named": true
           },
           {
+            "type": "implicit_object_call",
+            "named": true
+          },
+          {
             "type": "index_call",
             "named": true
           },
@@ -14101,6 +14105,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "implicit_object_call",
             "named": true
           },
           {

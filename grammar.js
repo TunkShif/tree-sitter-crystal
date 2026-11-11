@@ -2864,9 +2864,25 @@ module.exports = grammar({
         choice(
           $._expression,
           $._implicit_object_call,
+          alias($.implicit_object_assign, $.assign),
+          alias($.implicit_object_operator_assign, $.op_assign),
         ),
       ))
     },
+
+    // `&.name = v` (the setter `name=(v)` on the block argument), and the
+    // same after a chain: `&.a.b = v`.
+    implicit_object_assign: $ => prec.right('assignment_operator', seq(
+      field('lhs', alias($.implicit_object_call_chainable, $.implicit_object_call)),
+      '=',
+      field('rhs', $._expression),
+    )),
+
+    implicit_object_operator_assign: $ => prec.right('assignment_operator', seq(
+      field('lhs', alias($.implicit_object_call_chainable, $.implicit_object_call)),
+      alias(choice('+=', '&+=', '-=', '&-=', '*=', '&*=', '/=', '//=', '%=', '|=', '&=', '^=', '**=', '<<=', '>>=', '||=', '&&='), $.operator),
+      field('rhs', $._expression),
+    )),
 
     begin: $ => seq(
       'begin',
