@@ -1243,6 +1243,9 @@ module.exports = grammar({
         $.identifier,
         alias($.identifier_method_call, $.identifier),
         $.constant,
+        // The compiler accepts `self` as a fun param name (not a def's):
+        // `fun ts_language_symbol_name(self : TSLanguage*, ...)`.
+        alias($.self, $.identifier),
       ))
       const type = field('type', seq($._type_field_separator, $._bare_type))
 

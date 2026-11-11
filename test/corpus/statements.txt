@@ -1323,6 +1323,44 @@ end
   (comment))
 
 ================================================================================
+fun params named self
+================================================================================
+lib C
+  fun symbol_name(self : Language*, symbol : Symbol) : Char*
+end
+
+fun top(self : Int32) : Int32
+  self
+end
+--------------------------------------------------------------------------------
+
+(expressions
+  (lib_def
+    name: (constant)
+    body: (expressions
+      (fun_def
+        name: (identifier)
+        params: (param_list
+          (fun_param
+            name: (identifier)
+            type: (pointer_type
+              (constant)))
+          (fun_param
+            name: (identifier)
+            type: (constant)))
+        type: (pointer_type
+          (constant)))))
+  (fun_def
+    name: (identifier)
+    params: (param_list
+      (fun_param
+        name: (identifier)
+        type: (constant)))
+    type: (constant)
+    body: (expressions
+      (self))))
+
+================================================================================
 lib fun def with special characters
 ================================================================================
 lib C

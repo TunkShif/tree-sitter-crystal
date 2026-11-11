@@ -5266,6 +5266,15 @@
               {
                 "type": "SYMBOL",
                 "name": "constant"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "self"
+                },
+                "named": true,
+                "value": "identifier"
               }
             ]
           }
