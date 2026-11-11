@@ -1945,3 +1945,67 @@ end
         name: (identifier)))
     body: (expressions
       (macro_content))))
+
+================================================================================
+keywords as accessor names
+================================================================================
+class Name
+  private getter begin : Qux
+end
+
+class ASTNode
+  getter else : ASTNode?
+  property ensure : ASTNode? = nil
+  getter? select : Bool = true
+end
+
+record R, begin : Int32, end : Int32
+--------------------------------------------------------------------------------
+
+(expressions
+  (class_def
+    name: (constant)
+    body: (expressions
+      (visibility_modifier
+        visibility: (private)
+        (call
+          method: (identifier)
+          arguments: (argument_list
+            (type_declaration
+              var: (identifier)
+              type: (constant)))))))
+  (class_def
+    name: (constant)
+    body: (expressions
+      (call
+        method: (identifier)
+        arguments: (argument_list
+          (type_declaration
+            var: (identifier)
+            type: (nilable_type
+              (constant)))))
+      (call
+        method: (identifier)
+        arguments: (argument_list
+          (type_declaration
+            var: (identifier)
+            type: (nilable_type
+              (constant))
+            value: (nil))))
+      (call
+        method: (identifier)
+        arguments: (argument_list
+          (type_declaration
+            var: (identifier)
+            type: (constant)
+            value: (true))))))
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (constant)
+      (type_declaration
+        var: (identifier)
+        type: (constant))
+      (type_declaration
+        var: (identifier)
+        type: (constant)))))

@@ -1103,7 +1103,8 @@ module.exports = grammar({
 
     // Same as argument_list_with_parens, except without `token.immediate`
     annotation_argument_list: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return seq(
         '(',
@@ -1957,7 +1958,8 @@ module.exports = grammar({
     },
 
     bracket_argument_list: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return seq(
         args,
@@ -2578,7 +2580,8 @@ module.exports = grammar({
     },
 
     argument_list_no_parens: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return prec.right(seq(
         optional($._start_of_parenless_args),
@@ -2588,7 +2591,8 @@ module.exports = grammar({
     },
 
     argument_list_no_parens_with_block: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return prec.right(seq(
         optional($._start_of_parenless_args),
@@ -2602,7 +2606,8 @@ module.exports = grammar({
     },
 
     argument_list_with_parens: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return prec.right(seq(
         token.immediate('('),
@@ -2616,7 +2621,8 @@ module.exports = grammar({
     },
 
     argument_list_with_parens_and_block: $ => {
-      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out)
+      const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
+        alias($.keyword_type_declaration, $.type_declaration))
 
       return prec.right(seq(
         token.immediate('('),
@@ -2790,6 +2796,22 @@ module.exports = grammar({
         )),
       ))
     },
+
+    // `getter begin : B`, `property else : A?`, `record R, end : E`: a
+    // call argument written like a type declaration may be named by a
+    // keyword (the compiler accepts it; the accessors are `x.begin`).
+    // One token up to the ` :` so the keyword can't be mistaken for a
+    // statement keyword (`end` closing the enclosing body).
+    keyword_type_declaration: $ => prec('assignment_operator', seq(
+      field('var', alias($._keyword_type_declaration_name, $.identifier)),
+      field('type', $._bare_type),
+      optional(seq('=', field('value', $._expression))),
+    )),
+
+    _keyword_type_declaration_name: $ => token(seq(
+      choice('begin', 'end', 'else', 'elsif', 'ensure', 'rescue', 'then', 'when', 'in', 'do', 'case', 'select', 'if', 'unless', 'while', 'until', 'with', 'yield', 'self', 'true', 'false', 'nil', 'asm', 'typeof', 'sizeof', 'instance_sizeof', 'alignof', 'instance_alignof', 'pointerof', 'offsetof'),
+      /[ \t]+:[ \t]/,
+    )),
 
     alias: $ => seq(
       'alias',

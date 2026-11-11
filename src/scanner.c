@@ -315,6 +315,19 @@ static void lex_advance(TSLexer *lexer) {
     lexer->advance(lexer, false);
 }
 
+// After a keyword: is it followed by ` : ` (a type declaration named by the
+// keyword, `getter ensure : T`)? Marks the token end at the keyword first,
+// so a "no" leaves the keyword token unchanged; the lookahead past it is
+// only peeked.
+static bool keyword_is_type_declaration_name(TSLexer *lexer) {
+    lexer->mark_end(lexer);
+    if (lexer->lookahead != ' ' && lexer->lookahead != '\t') { return false; }
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') { lexer->advance(lexer, false); }
+    if (lexer->lookahead != ':') { return false; }
+    lexer->advance(lexer, false);
+    return lexer->lookahead == ' ' || lexer->lookahead == '\t';
+}
+
 static bool next_char_is_identifier(TSLexer *lexer) {
     int32_t lookahead = lexer->lookahead;
 
@@ -2826,6 +2839,11 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                     return false;
                 }
 
+                if (keyword_is_type_declaration_name(lexer)) {
+                    // `getter ensure : T`: an accessor named by the keyword
+                    return false;
+                }
+
                 if (valid_symbols[MODIFIER_ENSURE_KEYWORD] && !valid_symbols[REGULAR_ENSURE_KEYWORD]) {
                     lexer->result_symbol = MODIFIER_ENSURE_KEYWORD;
                     return true;
@@ -2853,6 +2871,11 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                 lex_advance(lexer);
                 if (next_char_is_identifier(lexer)) {
                     // This is some other identifier, not 'if'
+                    return false;
+                }
+
+                if (keyword_is_type_declaration_name(lexer)) {
+                    // `getter if : T`: an accessor named by the keyword
                     return false;
                 }
 
@@ -2893,6 +2916,11 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                     return false;
                 }
 
+                if (keyword_is_type_declaration_name(lexer)) {
+                    // `getter rescue : T`: an accessor named by the keyword
+                    return false;
+                }
+
                 if (valid_symbols[MODIFIER_RESCUE_KEYWORD] && !valid_symbols[REGULAR_RESCUE_KEYWORD]) {
                     lexer->result_symbol = MODIFIER_RESCUE_KEYWORD;
                     return true;
@@ -2926,6 +2954,11 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                 lex_advance(lexer);
                 if (next_char_is_identifier(lexer)) {
                     // This is some other identifier, not 'unless'
+                    return false;
+                }
+
+                if (keyword_is_type_declaration_name(lexer)) {
+                    // `getter unless : T`: an accessor named by the keyword
                     return false;
                 }
 
