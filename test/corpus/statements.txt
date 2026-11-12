@@ -1147,6 +1147,54 @@ end
             (constant)))))))
 
 ================================================================================
+index call on a continuation line
+================================================================================
+x = m
+  .match!(/a/)
+  .[1]
+  .split(",")
+y = foo(1)
+  .[0]?
+z = a
+  ..b
+--------------------------------------------------------------------------------
+
+(expressions
+  (assign
+    lhs: (identifier)
+    rhs: (call
+      receiver: (index_call
+        receiver: (call
+          receiver: (identifier)
+          method: (identifier)
+          arguments: (argument_list
+            (regex
+              (literal_content))))
+        method: (operator)
+        arguments: (argument_list
+          (integer)))
+      method: (identifier)
+      arguments: (argument_list
+        (string
+          (literal_content)))))
+  (assign
+    lhs: (identifier)
+    rhs: (index_call
+      receiver: (call
+        method: (identifier)
+        arguments: (argument_list
+          (integer)))
+      method: (operator)
+      arguments: (argument_list
+        (integer))))
+  (assign
+    lhs: (identifier)
+    rhs: (identifier))
+  (range
+    operator: (operator)
+    end: (identifier)))
+
+================================================================================
 line continuations
 ================================================================================
 a, b, \
@@ -1321,6 +1369,86 @@ end
     name: (identifier)
     real_name: (constant))
   (comment))
+
+================================================================================
+fun declarations with proc parameters
+================================================================================
+lib Foo
+  fun pthread_key_create(PthreadKeyT*, (Void*) ->) : Int
+  fun set_memory_functions = __gmp_set_memory_functions(malloc : SizeT -> Void*, realloc : Void*, SizeT, SizeT -> Void*, free : Void*, SizeT ->)
+end
+lib L
+  fun f(Int32*, (Int32*) -> Int32) : Int32
+  fun g = h((Int32) -> Int32)
+  fun m(Int32, (Int32 -> Int32))
+end
+--------------------------------------------------------------------------------
+
+(expressions
+  (lib_def
+    name: (constant)
+    body: (expressions
+      (fun_def
+        name: (identifier)
+        params: (param_list
+          (pointer_type
+            (constant))
+          (proc_type
+            (pointer_type
+              (constant))))
+        type: (constant))
+      (fun_def
+        name: (identifier)
+        real_name: (identifier)
+        params: (param_list
+          (fun_param
+            name: (identifier)
+            type: (proc_type
+              (constant)
+              return: (pointer_type
+                (constant))))
+          (fun_param
+            name: (identifier)
+            type: (proc_type
+              (pointer_type
+                (constant))
+              (constant)
+              (constant)
+              return: (pointer_type
+                (constant))))
+          (fun_param
+            name: (identifier)
+            type: (proc_type
+              (pointer_type
+                (constant))
+              (constant)))))))
+  (lib_def
+    name: (constant)
+    body: (expressions
+      (fun_def
+        name: (identifier)
+        params: (param_list
+          (pointer_type
+            (constant))
+          (proc_type
+            (pointer_type
+              (constant))
+            return: (constant)))
+        type: (constant))
+      (fun_def
+        name: (identifier)
+        real_name: (identifier)
+        params: (param_list
+          (proc_type
+            (constant)
+            return: (constant))))
+      (fun_def
+        name: (identifier)
+        params: (param_list
+          (constant)
+          (proc_type
+            (constant)
+            return: (constant)))))))
 
 ================================================================================
 fun params named self

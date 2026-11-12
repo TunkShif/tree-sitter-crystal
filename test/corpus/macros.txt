@@ -1253,3 +1253,42 @@ macro var in call args
       (macro_var
         name: (identifier))
       (macro_content))))
+
+================================================================================
+}} inside macro content
+================================================================================
+{% if flag?(:win32) %}
+  with_foo({bar: {baz: "*"}}) do
+  end
+{% end %}
+macro m
+  x = {2 => {3 => 1}}
+  {{ {a: {b: 1}} }}
+end
+--------------------------------------------------------------------------------
+
+(expressions
+  (macro_if
+    cond: (call
+      method: (identifier)
+      arguments: (argument_list
+        (symbol
+          (literal_content))))
+    then: (expressions
+      (macro_content)
+      (macro_content
+        (literal_content))
+      (macro_content)))
+  (macro_def
+    name: (identifier)
+    body: (expressions
+      (macro_content)
+      (macro_expression
+        (named_tuple
+          (named_expr
+            name: (identifier)
+            (named_tuple
+              (named_expr
+                name: (identifier)
+                (integer))))))
+      (macro_content))))

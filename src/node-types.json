@@ -1244,6 +1244,10 @@
           "named": true
         },
         {
+          "type": "splat",
+          "named": true
+        },
+        {
           "type": "string",
           "named": true
         },
@@ -7933,6 +7937,10 @@
           },
           {
             "type": "if",
+            "named": true
+          },
+          {
+            "type": "implicit_object_call",
             "named": true
           },
           {
@@ -17840,6 +17848,10 @@
           "named": true
         },
         {
+          "type": "splat",
+          "named": true
+        },
+        {
           "type": "string",
           "named": true
         },
@@ -20428,6 +20440,10 @@
   },
   {
     "type": "\"",
+    "named": false
+  },
+  {
+    "type": "#<",
     "named": false
   },
   {

@@ -1525,6 +1525,33 @@ regexes
     (regex_modifier)))
 
 ================================================================================
+regexes with #<
+:language(crystal)
+================================================================================
+/#</
+/\A#<Foo:0x\h+>\z/
+/a#{b}#<c/
+/#<loc:push>/
+x = 1
+--------------------------------------------------------------------------------
+
+(expressions
+  (regex
+    (literal_content))
+  (regex
+    (literal_content))
+  (regex
+    (literal_content)
+    (interpolation
+      (identifier))
+    (literal_content))
+  (regex
+    (literal_content))
+  (assign
+    lhs: (identifier)
+    rhs: (integer)))
+
+================================================================================
 regex percent literals
 :language(crystal)
 ================================================================================
@@ -1801,6 +1828,55 @@ puts(..)
     arguments: (argument_list
       (range
         operator: (operator)))))
+
+================================================================================
+splats in arrays and tuples
+:language(crystal)
+================================================================================
+[*columns]
+[*a, 1] of Int32
+[0, *xs, *mix]
+{*sensor, distance(sensor, beacon)}
+Set{*a, 9}
+[a * b, c]
+--------------------------------------------------------------------------------
+
+(expressions
+  (array
+    (splat
+      (identifier)))
+  (array
+    (splat
+      (identifier))
+    (integer)
+    of: (constant))
+  (array
+    (integer)
+    (splat
+      (identifier))
+    (splat
+      (identifier)))
+  (tuple
+    (splat
+      (identifier))
+    (call
+      method: (identifier)
+      arguments: (argument_list
+        (identifier)
+        (identifier))))
+  (array_like
+    name: (constant)
+    values: (tuple
+      (splat
+        (identifier))
+      (integer)))
+  (array
+    (call
+      receiver: (identifier)
+      method: (operator)
+      arguments: (argument_list
+        (identifier)))
+    (identifier)))
 
 ================================================================================
 tuples

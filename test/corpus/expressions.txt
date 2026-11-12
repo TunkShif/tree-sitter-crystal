@@ -560,6 +560,143 @@ pp **{a: 1, "b": 2.0, C: -3, }, **{c: nil}
             (nil)))))))
 
 ================================================================================
+underscore arguments
+================================================================================
+each_abbrev(bytes, _) do |a|
+end
+foo(_)
+foo(1, _)
+--------------------------------------------------------------------------------
+
+(expressions
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (identifier)
+      (underscore))
+    block: (block
+      params: (param_list
+        (param
+          name: (identifier)))))
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (underscore)))
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (integer)
+      (underscore))))
+
+================================================================================
+trailing comma after parenless call arguments
+================================================================================
+x = {
+  0 => f "a",
+}
+y = [f 1,
+]
+z = {k: f 1, # c
+}
+w = f 1,
+  2
+--------------------------------------------------------------------------------
+
+(expressions
+  (assign
+    lhs: (identifier)
+    rhs: (hash
+      (hash_entry
+        (integer)
+        (call
+          method: (identifier)
+          arguments: (argument_list
+            (string
+              (literal_content)))))))
+  (assign
+    lhs: (identifier)
+    rhs: (array
+      (call
+        method: (identifier)
+        arguments: (argument_list
+          (integer)))))
+  (assign
+    lhs: (identifier)
+    rhs: (named_tuple
+      (named_expr
+        name: (identifier)
+        (call
+          method: (identifier)
+          arguments: (argument_list
+            (integer))))
+      (comment)))
+  (assign
+    lhs: (identifier)
+    rhs: (call
+      method: (identifier)
+      arguments: (argument_list
+        (integer)
+        (integer)))))
+
+================================================================================
+comments inside nested named tuples
+================================================================================
+MyConst1 = {
+  # This is a comment
+  name1: {
+    sub1: [:foo, :bar]
+  },
+}
+
+MyConst2 = {
+  name1: {
+    sub1: [:foo, :bar]
+  },
+}
+
+x = {
+  # c
+  1 => 2,
+}
+--------------------------------------------------------------------------------
+
+(expressions
+  (const_assign
+    lhs: (constant)
+    rhs: (named_tuple
+      (comment)
+      (named_expr
+        name: (identifier)
+        (named_tuple
+          (named_expr
+            name: (identifier)
+            (array
+              (symbol
+                (literal_content))
+              (symbol
+                (literal_content))))))))
+  (const_assign
+    lhs: (constant)
+    rhs: (named_tuple
+      (named_expr
+        name: (identifier)
+        (named_tuple
+          (named_expr
+            name: (identifier)
+            (array
+              (symbol
+                (literal_content))
+              (symbol
+                (literal_content))))))))
+  (assign
+    lhs: (identifier)
+    rhs: (hash
+      (comment)
+      (hash_entry
+        (integer)
+        (integer)))))
+
+================================================================================
 named arguments
 ================================================================================
 foo(named: 1)
@@ -2911,6 +3048,85 @@ method(&.take_block { |f| f.foo })
               (call
                 receiver: (identifier)
                 method: (identifier)))))))))
+
+================================================================================
+index on a short block call
+================================================================================
+filters1.try(&.pos[name])
+filters1.try(&.pos[name]?)
+x.try &.pos[1]
+foo &.bar [1]
+foo &.bar[1]
+xs.map(&.[0]?)
+--------------------------------------------------------------------------------
+
+(expressions
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          (index_call
+            receiver: (implicit_object_call
+              method: (identifier))
+            method: (operator)
+            arguments: (argument_list
+              (identifier)))))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          (index_call
+            receiver: (implicit_object_call
+              method: (identifier))
+            method: (operator)
+            arguments: (argument_list
+              (identifier)))))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          (index_call
+            receiver: (implicit_object_call
+              method: (identifier))
+            method: (operator)
+            arguments: (argument_list
+              (integer)))))))
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          method: (identifier)
+          arguments: (argument_list
+            (array
+              (integer)))))))
+  (call
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          (index_call
+            receiver: (implicit_object_call
+              method: (identifier))
+            method: (operator)
+            arguments: (argument_list
+              (integer)))))))
+  (call
+    receiver: (identifier)
+    method: (identifier)
+    arguments: (argument_list
+      (block_argument
+        (implicit_object_call
+          (index_call
+            method: (operator)
+            arguments: (argument_list
+              (integer))))))))
 
 ================================================================================
 precedence of block attachment with &. short block syntax

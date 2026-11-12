@@ -145,6 +145,10 @@ module.exports = grammar({
     $.macro_content,
     $.macro_content_nesting,
 
+    // `,` before a closing `}`/`]`/`)` (scanner): a parenless call's
+    // trailing comma, `{0 => f "a",\n}`.
+    $._trailing_comma,
+
     // These symbols are never actually returned. They signal the current scope
     // to the scanner.
     $._start_of_parenless_args,
@@ -909,6 +913,9 @@ module.exports = grammar({
     regex_literal_content: $ => prec.right(repeat1(
       choice(
         token.immediate(prec(1, /[^\\/]/)),
+        // `#<` is content: the `#<loc:...>` pragma extras (prec 1) would
+        // otherwise win and fall back to `comment`, which eats the line.
+        token.immediate(prec(2, '#<')),
         token.immediate(/\\./),
         $._line_continuation,
       ),
@@ -932,8 +939,8 @@ module.exports = grammar({
       return choice(
         seq(
           '[',
-          $._expression,
-          repeat(seq(',', $._expression)),
+          choice($._expression, $.splat),
+          repeat(seq(',', choice($._expression, $.splat))),
           optional(','),
           ']',
           optional(of_type),
@@ -975,8 +982,8 @@ module.exports = grammar({
 
     tuple: $ => seq(
       alias($._start_of_hash_or_tuple, '{'),
-      $._expression,
-      repeat(seq(',', $._expression)),
+      choice($._expression, $.splat),
+      repeat(seq(',', choice($._expression, $.splat))),
       optional(','),
       '}',
     ),
@@ -1230,14 +1237,26 @@ module.exports = grammar({
     },
 
     fun_type_param_list: $ => {
+      // An unnamed param may also be a proc type with one parenthesised
+      // param, `(Bio*) -> Int` (`_type` only has the 0- and 2+-param
+      // forms; a bare `A -> B` is rejected by the compiler here).
+      const param = choice($.fun_param, $._type, alias($.fun_paren_proc_type, $.proc_type))
       return seq(
-        choice($.fun_param, $._type),
-        repeat(seq(',', choice($.fun_param, $._type))),
+        param,
+        repeat(seq(',', param)),
         optional(seq(
           ',', optional('...'),
         )),
       )
     },
+
+    fun_paren_proc_type: $ => prec('proc_type', seq(
+      '(',
+      $._bare_type,
+      ')',
+      '->',
+      optional(prec.dynamic(10, field('return', $._type))),
+    )),
 
     fun_param: $ => {
       const name = field('name', choice(
@@ -2252,11 +2271,13 @@ module.exports = grammar({
     },
 
     // The primary rule for implicit objects
+    // Right-associative: `x.try &.pos[1]` indexes inside the block (as
+    // the compiler reads it), not `x.try(&.pos)[1]`.
     _implicit_object_call: $ => alias(
-      choice(
+      prec.right(choice(
         $.implicit_object_call_chainable,
         $.implicit_object_call_unchainable,
-      ),
+      )),
       $.implicit_object_call,
     ),
 
@@ -2314,26 +2335,44 @@ module.exports = grammar({
 
       const do_end_block = field('block', alias($.do_end_block, $.block))
 
-      return seq(
-        optional(chained_receiver),
-        choice(
-          prec.right(seq(method_name, optional(
-            field('arguments', alias($.argument_list_with_parens, $.argument_list)),
-          ))),
-          seq(method_name, optional(argument_list), brace_block),
-          seq(method_name, optional(argument_list), do_end_block),
-          seq(method_name, argument_list_with_block),
-          alias($.implicit_object_ivar, $.instance_var),
-          alias($.implicit_object_index_operator, $.index_call),
+      return choice(
+        seq(
+          optional(chained_receiver),
+          choice(
+            prec.right(seq(method_name, optional(
+              field('arguments', alias($.argument_list_with_parens, $.argument_list)),
+            ))),
+            seq(method_name, optional(argument_list), brace_block),
+            seq(method_name, optional(argument_list), do_end_block),
+            seq(method_name, argument_list_with_block),
+            alias($.implicit_object_ivar, $.instance_var),
+            alias($.implicit_object_index_operator, $.index_call),
+          ),
         ),
+        alias($.implicit_object_postfix_index, $.index_call),
       )
+    },
+
+    // `&.pos[name]`, `&.pos[name]?`: an index on an implicit object call
+    // (without it, `[` started an array argument: `pos([name])`).
+    implicit_object_postfix_index: $ => {
+      const args = field('arguments', alias($.bracket_argument_list, $.argument_list))
+
+      return prec('index_operator', seq(
+        field('receiver', alias($.implicit_object_call_chainable, $.implicit_object_call)),
+        field('method', alias($._start_of_index_operator, $.operator)),
+        optional(args),
+        choice(']', ']?'),
+      ))
     },
 
     implicit_object_tuple: $ => seq(
       alias($._start_of_hash_or_tuple, '{'),
+      // Same element choice as `tuple` (incl. splat) so the prefix shares
+      // its states: `when {a, b, _}` vs `when {a, b}`.
       optional(seq(
-        $._expression,
-        repeat(seq(',', $._expression)),
+        choice($._expression, $.splat),
+        repeat(seq(',', choice($._expression, $.splat))),
         ',',
       )),
       choice($._implicit_object_call, $.underscore),
@@ -2587,6 +2626,7 @@ module.exports = grammar({
         optional($._start_of_parenless_args),
         args,
         repeat(prec('comma', seq(',', args))),
+        optional(alias($._trailing_comma, ',')),
       ))
     },
 
@@ -2606,8 +2646,10 @@ module.exports = grammar({
     },
 
     argument_list_with_parens: $ => {
+      // `_` parses as an argument (`each_abbrev(bytes, _) do`); the
+      // compiler rejects reading it later, not the parser.
       const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
-        alias($.keyword_type_declaration, $.type_declaration))
+        alias($.keyword_type_declaration, $.type_declaration), $.underscore)
 
       return prec.right(seq(
         token.immediate('('),
@@ -2621,8 +2663,10 @@ module.exports = grammar({
     },
 
     argument_list_with_parens_and_block: $ => {
+      // `_` parses as an argument (`each_abbrev(bytes, _) do`); the
+      // compiler rejects reading it later, not the parser.
       const args = choice($._expression, $.splat, $.double_splat, $.named_expr, $.out,
-        alias($.keyword_type_declaration, $.type_declaration))
+        alias($.keyword_type_declaration, $.type_declaration), $.underscore)
 
       return prec.right(seq(
         token.immediate('('),

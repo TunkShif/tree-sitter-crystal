@@ -105,6 +105,10 @@ enum Token {
     MACRO_CONTENT,
     MACRO_CONTENT_NESTING,
 
+    // `,` directly before a closing `}`, `]` or `)`: ends a parenless
+    // call's arguments (`{0 => f "a",\n}`)
+    TRAILING_COMMA,
+
     // Never returned
     START_OF_PARENLESS_ARGS,
     END_OF_RANGE,
@@ -421,6 +425,13 @@ static bool scan_whitespace(State *state, TSLexer *lexer, const bool *valid_symb
                         lex_advance(lexer);
                         if (lexer->lookahead == '.') {
                             lexer->result_symbol = LINE_BREAK;
+                        } else {
+                            // A method call continues on this line. The `.`
+                            // is consumed, so scanning on would read what
+                            // follows it (`[` in `x\n  .[1]` became an index
+                            // operator token ending at the newline): leave
+                            // the `.` to the internal lexer.
+                            return false;
                         }
                     } else if (lexer->lookahead == '#') {
                         // Comments don't interrupt line continuations
@@ -954,9 +965,9 @@ static ScanResult scan_macro_contents(State *state, TSLexer *lexer, const bool *
                 // if/unless is a modifier after this point.
                 state->macro_state.non_modifier_keyword_can_begin = false;
 
-                if (lexer->lookahead == '}') {
-                    RETURN_CONTENT;
-                }
+                // `}}` in macro text is literal: Crystal's macro lexer has no
+                // token for it (only the parser inside `{{ ... }}` ends
+                // there, and that isn't macro content). `{a: {b: 1}}`.
 
                 // This is the end for a tuple, brace block, etc. Non-modifier keywords are valid.
                 found_content = true;
@@ -1458,6 +1469,20 @@ static void advance_space_and_newline(TSLexer *lexer) {
     }
 }
 
+// As advance_space_and_newline, also skipping `#` comments (not `#{`):
+// `{\n  # doc\n  key: 1\n}` is still a named tuple.
+static void advance_space_newline_and_comments(TSLexer *lexer) {
+    for (;;) {
+        advance_space_and_newline(lexer);
+        if (lexer->lookahead != '#') { return; }
+        lex_advance(lexer);
+        if (lexer->lookahead == '{') { return; }
+        while (lexer->lookahead != '\n' && !lexer->eof(lexer)) {
+            lex_advance(lexer);
+        }
+    }
+}
+
 static void consume_const(TSLexer *lexer) {
     if ('A' <= lexer->lookahead && lexer->lookahead <= 'Z') {
         lex_advance(lexer);
@@ -1690,7 +1715,7 @@ static LookaheadResult lookahead_start_of_type(State *state, TSLexer *lexer) {
 
     while (lexer->lookahead == '{' || lexer->lookahead == '(') {
         lex_advance(lexer);
-        advance_space_and_newline(lexer);
+        advance_space_newline_and_comments(lexer);
     }
 
     // Check for identifier
@@ -1885,6 +1910,32 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
         return true;
     }
 
+    if (valid_symbols[TRAILING_COMMA] && !valid_symbols[ERROR_RECOVERY] && lexer->lookahead == ',') {
+        lex_advance(lexer);
+        lexer->mark_end(lexer);
+        for (;;) {
+            if (iswspace(lexer->lookahead)) {
+                lex_advance(lexer);
+            } else if (lexer->lookahead == '#') {
+                while (lexer->lookahead != '\n' && !lexer->eof(lexer)) {
+                    lex_advance(lexer);
+                }
+            } else {
+                break;
+            }
+        }
+        switch (lexer->lookahead) {
+            case '}':
+            case ']':
+            case ')':
+                lexer->result_symbol = TRAILING_COMMA;
+                return true;
+            default:
+                // A separator: the internal lexer reads the `,`.
+                return false;
+        }
+    }
+
     if (valid_symbols[PERCENT_LITERAL_END] && HAS_ACTIVE_LITERAL(state)) {
         if (lexer->lookahead == ACTIVE_LITERAL(state)->closing_char) {
             lex_advance(lexer);
@@ -1972,7 +2023,7 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                     if (valid_symbols[END_OF_RANGE]) {
                         // We don't want to consume while looking ahead
                         lexer->mark_end(lexer);
-                        advance_space_and_newline(lexer);
+                        advance_space_newline_and_comments(lexer);
 
                         // After a range operator, these symbols should only be valid together
                         assert(valid_symbols[START_OF_NAMED_TUPLE] && valid_symbols[START_OF_HASH_OR_TUPLE]);
@@ -2066,7 +2117,7 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                 } else if (BRACE_EXPR) {
                     // We don't want to consume while looking ahead
                     lexer->mark_end(lexer);
-                    advance_space_and_newline(lexer);
+                    advance_space_newline_and_comments(lexer);
 
                     if (valid_symbols[START_OF_HASH_OR_TUPLE] && !valid_symbols[START_OF_NAMED_TUPLE]) {
                         // This is possible with "array-like" or "hash-like" syntax:
@@ -2092,7 +2143,7 @@ static bool inner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols)
                 } else if (BRACE_TYPE) {
                     // We don't want to consume while looking ahead
                     lexer->mark_end(lexer);
-                    advance_space_and_newline(lexer);
+                    advance_space_newline_and_comments(lexer);
 
                     switch (lookahead_start_of_named_tuple_entry(lexer, false)) {
                         case LOOKAHEAD_NAMED_TUPLE:
@@ -3099,6 +3150,7 @@ bool tree_sitter_crystal_external_scanner_scan(void *payload, TSLexer *lexer, co
     LOG_SYMBOL(MACRO_DELIMITER_ELSIF);
     LOG_SYMBOL(MACRO_CONTENT);
     LOG_SYMBOL(MACRO_CONTENT_NESTING);
+    LOG_SYMBOL(TRAILING_COMMA);
     LOG_SYMBOL(START_OF_PARENLESS_ARGS);
     LOG_SYMBOL(END_OF_RANGE);
     LOG_SYMBOL(START_OF_MACRO_VAR_EXPS);
